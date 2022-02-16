@@ -10,9 +10,9 @@
             "request": "launch",
             "program": "find-heavy-assets.py",
             "console": "integratedTerminal",
-            "args": [
-                "example.log"
-            ],
+            "args": [ "--verbose" ,
+                "example.log"]
+            ,
         }
     ]
 }
