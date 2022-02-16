@@ -44,6 +44,11 @@ def read_apache_log_as_dataframe(file_name):
         # split line on spaces but consider quoted strings as one word
         line_list = [p for p in re.split("( |\\\".*?\\\"|'.*?')", line) if p.strip()]      
 
+        if len(line_list) < 5:
+            if verbose:
+                print("Line {} is not in the correct format".format(i))
+            continue
+
         # split line_list[4] on spaces and insert into list
         request_list = [p for p in re.split("( |\\\".*?\\\"|'.*?')", line_list[4]) if p.strip()]
 
@@ -107,6 +112,7 @@ def read_apache_log_as_dataframe(file_name):
 ## main so that this file can be imported as a module
 if __name__ == '__main__':
 
+    verbose = False
 
     # if there is a --verbose or -v set verbose to True
     if '--verbose' in sys.argv or '-v' in sys.argv:
@@ -128,10 +134,13 @@ if __name__ == '__main__':
         sys.exit()
 
     # get the input filename as the first argument that doesn't start with -
-    for arg in sys.argv:
-        if arg[0] != '-':
-            input_file_name = arg
-            break
+    if len(sys.argv) == 2:
+        input_file_name = sys.argv[1]
+    else:
+        for arg in sys.argv[1:]:
+            if arg[0] != '-':
+                input_file_name = arg
+                break
 
     if verbose:
         print('reading apache log: ' + input_file_name)
@@ -161,4 +170,4 @@ if __name__ == '__main__':
     report.to_excel('heavy_assets_report_' +datetimeasanumber+ '.xlsx', sheet_name='report')
 
 
-    print('Report exported to report.xlsx')    
+    print('Report exported to excel file heavy_assets_report_' +datetimeasanumber+ '.xlsx')  
