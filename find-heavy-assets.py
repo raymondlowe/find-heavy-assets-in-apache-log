@@ -9,6 +9,8 @@
 import sys
 import re
 import pandas as pd
+import openpyxl
+import datetime
 
 
 # Example of a line in the apache log format
@@ -28,6 +30,7 @@ def read_apache_log_as_dataframe(file_name):
     df = pd.DataFrame()
     
 
+    all_list = []
 
     i = 0
     for line in file:
@@ -47,15 +50,28 @@ def read_apache_log_as_dataframe(file_name):
         # insert request_list into line_list in the 4th place
         # line_list.insert(4, request_list)
 
+        # append line_list to a complete_list
+        complete_line_list_with_everything = line_list + request_list
+        # print(line_list[6])
+        # if complete)list_list_with_everything is the correct length
+        if len(complete_line_list_with_everything) == 10:
 
-        # append line_list as a new row at the end of the dataframe df
-        df = df.append(pd.Series(line_list), ignore_index=True)
+            # append complete_list to a all_list
+            all_list.append(complete_line_list_with_everything)
+        else:
+            if verbose:
+                print('Error in line ' + str(i) + ': ' + line)
 
+        
     # Close the input file
     file.close()
 
+    # convert all_list into a dataframe called df
+    df = pd.DataFrame(all_list)
+
+
     # rename the df columns to ip, dash, dash2, datetime, request, status, bytes, dash3, user_agent
-    df.columns = ['ip', 'dash', 'dash2', 'datetime', 'request', 'status', 'bytes', 'dash3', 'user_agent', 'dash4', 'dash5']
+    df.columns = ['ip', 'dash', 'dash2', 'datetime', 'request', 'status', 'bytes', 'dash3', 'user_agent', 'dash4']
 
     # remove quotes from requests column
     df['request'] = df['request'].str.replace('"', '')
@@ -72,6 +88,12 @@ def read_apache_log_as_dataframe(file_name):
     # parse apache log date time with timezone into datetime format
     df['datetime'] = pd.to_datetime(df['datetime'], format='%d/%b/%Y:%H:%M:%S %z')
 
+    # replace dashes with 0 in column bytes
+    df['bytes'] = df['bytes'].str.replace('-', '0')
+
+    # convert bytes column to numeric
+    df['bytes'] = pd.to_numeric(df['bytes'])
+
     # return the dataframe
 
     return df
@@ -84,11 +106,50 @@ def read_apache_log_as_dataframe(file_name):
 
 ## main so that this file can be imported as a module
 if __name__ == '__main__':
+
+
+    # if there is a --verbose or -v set verbose to True
+    if '--verbose' in sys.argv or '-v' in sys.argv:
+        verbose = True
+
+    # if there is a --help or -h print help and exit
+    if '--help' in sys.argv or '-h' in sys.argv:
+        print('Usage: find-heavy-assets.py [--verbose] [--help] <apache log file>')
+        print('--verbose or -v: print verbose output')
+        print('--help or -h: print this help message')
+        print('<apache log file>: apache log file to process')
+        sys.exit()
+
+    # get the input filename as the first argument that doesn't start with -
+    for arg in sys.argv:
+        if arg[0] != '-':
+            input_file_name = arg
+            break
+
+    if verbose:
+        print('reading apache log: ' + input_file_name)
+
     # call the apache_to_csv function using the first arg as the parameter
-    apache_log_df = read_apache_log_as_dataframe(sys.argv[1])
+    apache_log_df = read_apache_log_as_dataframe(input_file_name)
 
-    report =pd.pivot_table(apache_log_df,index=['request_type', 'request_path'], values='bytes', aggfunc=['sum','mean','count'])
+    if verbose:
+        # say how big the apache log is
+        print('apache log has ' + str(len(apache_log_df)) + ' lines')
+
+    report =pd.pivot_table(apache_log_df,index='request_path', values='bytes', aggfunc=['sum','mean','count'])
 
 
-    print(apache_log_df)
-    print(report) 
+    # print(apache_log_df)
+    
+
+    # export the report to an excel file
+    
+    # put in manual labels for the columns of the pivot table
+    report.columns = ['Total Bytes', 'Average Bytes', 'Count']
+ 
+    if verbose:
+        print("Writing report to excel file")
+    report.to_excel('report.xlsx', sheet_name='report')
+
+
+    print('Report exported to report.xlsx')    
