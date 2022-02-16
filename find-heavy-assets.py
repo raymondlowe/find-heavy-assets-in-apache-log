@@ -112,12 +112,19 @@ if __name__ == '__main__':
     if '--verbose' in sys.argv or '-v' in sys.argv:
         verbose = True
 
+    # if there are no arguments
+    if len(sys.argv) == 1:
+        print('Usage: find-heavy-assets.py [--verbose] <apache log file>')
+        sys.exit(1)
+
+
     # if there is a --help or -h print help and exit
     if '--help' in sys.argv or '-h' in sys.argv:
         print('Usage: find-heavy-assets.py [--verbose] [--help] <apache log file>')
         print('--verbose or -v: print verbose output')
         print('--help or -h: print this help message')
         print('<apache log file>: apache log file to process')
+        print('output will be a spreadsheet in the current directory called heavy_assets.xlsx')
         sys.exit()
 
     # get the input filename as the first argument that doesn't start with -
@@ -149,7 +156,9 @@ if __name__ == '__main__':
  
     if verbose:
         print("Writing report to excel file")
-    report.to_excel('report.xlsx', sheet_name='report')
+
+    datetimeasanumber = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    report.to_excel('heavy_assets_report_' +datetimeasanumber+ '.xlsx', sheet_name='report')
 
 
     print('Report exported to report.xlsx')    
